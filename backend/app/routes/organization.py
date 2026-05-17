@@ -45,8 +45,11 @@ def update_settings(
         "accent_color": organization.accent_color,
     }
     update_data = payload.model_dump(exclude_unset=True)
-    if "phone" in update_data and update_data["phone"]:
-        update_data["phone"] = clean_phone_number(update_data["phone"])
+    if "phone" in update_data:
+        if update_data["phone"]:
+            update_data["phone"] = clean_phone_number(update_data["phone"])
+        else:
+            update_data["phone"] = None
     if "footer_text" in update_data:
         update_data["footer_text"] = _clean_optional_text(update_data["footer_text"])
     for field, value in update_data.items():

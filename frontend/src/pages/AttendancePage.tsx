@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { MessageCircle, Plus, Trash2 } from 'lucide-react';
 import { api, extractError } from '../api/client';
 import { EmptyState } from '../components/EmptyState';
@@ -17,6 +17,7 @@ export function AttendancePage() {
   const [form, setForm] = useState({ student_id: '', attendance_date: new Date().toISOString().slice(0, 10), status: 'arrived' as AttendanceStatus, arrival_time: '', departure_time: '', notes: '' });
   const [error, setError] = useState('');
   const [preview, setPreview] = useState('');
+  const mountedRef = useRef(true);
 
   async function loadData() {
     try {
@@ -24,10 +25,12 @@ export function AttendancePage() {
         api.get<AttendanceRecord[]>('/attendance'),
         api.get<Student[]>('/students', { params: { is_active: true } })
       ]);
-      setRecords(attendanceResponse.data);
-      setStudents(studentsResponse.data);
+      if (mountedRef.current) {
+        setRecords(attendanceResponse.data);
+        setStudents(studentsResponse.data);
+      }
     } catch (err) {
-      setError(extractError(err));
+      if (mountedRef.current) setError(extractError(err));
     }
   }
 
@@ -58,12 +61,18 @@ export function AttendancePage() {
 
   async function removeRecord(id: string) {
     if (!confirm('¿Eliminar este registro de asistencia?')) return;
-    await api.delete(`/attendance/${id}`);
-    await loadData();
+    try {
+      await api.delete(`/attendance/${id}`);
+      await loadData();
+    } catch (err) {
+      setError(extractError(err));
+    }
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     loadData();
+    return () => { mountedRef.current = false; };
   }, []);
 
   const studentName = (id: string) => students.find((student) => student.id === id)?.full_name ?? 'Estudiante';

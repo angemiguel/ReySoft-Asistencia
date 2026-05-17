@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { api, extractError } from '../api/client';
 import { EmptyState } from '../components/EmptyState';
@@ -16,16 +16,17 @@ export function CoursesPage() {
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const mountedRef = useRef(true);
 
   async function loadCourses() {
     setLoading(true);
     try {
       const response = await api.get<Course[]>('/courses', { params: search ? { search } : undefined });
-      setCourses(response.data);
+      if (mountedRef.current) setCourses(response.data);
     } catch (err) {
-      setError(extractError(err));
+      if (mountedRef.current) setError(extractError(err));
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }
 
@@ -45,12 +46,18 @@ export function CoursesPage() {
 
   async function removeCourse(id: string) {
     if (!confirm('¿Desactivar este curso?')) return;
-    await api.delete(`/courses/${id}`);
-    await loadCourses();
+    try {
+      await api.delete(`/courses/${id}`);
+      await loadCourses();
+    } catch (err) {
+      setError(extractError(err));
+    }
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     loadCourses();
+    return () => { mountedRef.current = false; };
   }, []);
 
   return (

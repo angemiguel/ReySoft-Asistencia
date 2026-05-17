@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { ImagePlus, Save } from 'lucide-react';
 import { api, extractError, mediaUrl } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
@@ -33,10 +33,15 @@ export function SettingsPage() {
   const [logoInputKey, setLogoInputKey] = useState(0);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const mountedRef = useRef(true);
 
   async function loadSettings() {
-    const response = await api.get<Organization>('/organization/settings');
-    setForm(organizationToForm(response.data));
+    try {
+      const response = await api.get<Organization>('/organization/settings');
+      if (mountedRef.current) setForm(organizationToForm(response.data));
+    } catch (err) {
+      if (mountedRef.current) setError(extractError(err));
+    }
   }
 
   function onLogoChange(event: ChangeEvent<HTMLInputElement>) {
@@ -79,7 +84,9 @@ export function SettingsPage() {
   }
 
   useEffect(() => {
-    loadSettings().catch((err) => setError(extractError(err)));
+    mountedRef.current = true;
+    loadSettings();
+    return () => { mountedRef.current = false; };
   }, []);
 
   useEffect(() => {

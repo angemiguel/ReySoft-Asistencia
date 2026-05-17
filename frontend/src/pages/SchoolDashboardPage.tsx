@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CalendarCheck, ClipboardCheck, GraduationCap, Timer, UserRoundCheck, UserRoundX } from 'lucide-react';
 import { api, extractError } from '../api/client';
 
@@ -14,11 +14,14 @@ interface SchoolStats {
 export function SchoolDashboardPage() {
   const [stats, setStats] = useState<SchoolStats | null>(null);
   const [error, setError] = useState('');
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     api.get<SchoolStats>('/dashboard/school')
-      .then((response) => setStats(response.data))
-      .catch((err) => setError(extractError(err)));
+      .then((response) => { if (mountedRef.current) setStats(response.data); })
+      .catch((err) => { if (mountedRef.current) setError(extractError(err)); });
+    return () => { mountedRef.current = false; };
   }, []);
 
   const cards = [

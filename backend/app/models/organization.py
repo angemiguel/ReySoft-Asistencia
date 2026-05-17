@@ -11,9 +11,9 @@ from app.models.mixins import TimestampMixin
 class Organization(TimestampMixin, Base):
     __tablename__ = "organizations"
     __table_args__ = (
-        CheckConstraint("primary_color REGEXP '^#[0-9A-Fa-f]{6}$'", name="chk_organization_primary_color"),
-        CheckConstraint("secondary_color REGEXP '^#[0-9A-Fa-f]{6}$'", name="chk_organization_secondary_color"),
-        CheckConstraint("accent_color REGEXP '^#[0-9A-Fa-f]{6}$'", name="chk_organization_accent_color"),
+        CheckConstraint("primary_color ~ '^#[0-9A-Fa-f]{6}$'", name="chk_organization_primary_color"),
+        CheckConstraint("secondary_color ~ '^#[0-9A-Fa-f]{6}$'", name="chk_organization_secondary_color"),
+        CheckConstraint("accent_color ~ '^#[0-9A-Fa-f]{6}$'", name="chk_organization_accent_color"),
         CheckConstraint(
             "footer_text IS NULL OR length(footer_text) <= 500",
             name="ck_organizations_organization_footer_text_length",

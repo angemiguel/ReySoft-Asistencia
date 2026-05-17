@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { Download, Plus, Trash2, Upload } from 'lucide-react';
 import { api, extractError } from '../api/client';
 import { EmptyState } from '../components/EmptyState';
@@ -26,6 +26,7 @@ export function StudentsPage() {
   const [message, setMessage] = useState('');
   const [importInputKey, setImportInputKey] = useState(0);
   const [importing, setImporting] = useState(false);
+  const mountedRef = useRef(true);
 
   async function loadData() {
     try {
@@ -34,11 +35,13 @@ export function StudentsPage() {
         api.get<Course[]>('/courses', { params: { is_active: true } }),
         api.get<Guardian[]>('/guardians', { params: { is_active: true } })
       ]);
-      setStudents(studentsResponse.data);
-      setCourses(coursesResponse.data);
-      setGuardians(guardiansResponse.data);
+      if (mountedRef.current) {
+        setStudents(studentsResponse.data);
+        setCourses(coursesResponse.data);
+        setGuardians(guardiansResponse.data);
+      }
     } catch (err) {
-      setError(extractError(err));
+      if (mountedRef.current) setError(extractError(err));
     }
   }
 
@@ -64,8 +67,12 @@ export function StudentsPage() {
 
   async function removeStudent(id: string) {
     if (!confirm('¿Desactivar este estudiante?')) return;
-    await api.delete(`/students/${id}`);
-    await loadData();
+    try {
+      await api.delete(`/students/${id}`);
+      await loadData();
+    } catch (err) {
+      setError(extractError(err));
+    }
   }
 
   async function exportStudents(fileFormat: 'xlsx' | 'csv') {
@@ -115,7 +122,9 @@ export function StudentsPage() {
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     loadData();
+    return () => { mountedRef.current = false; };
   }, [courseFilter]);
 
   const courseName = (id: string) => courses.find((course) => course.id === id)?.name ?? 'Curso';

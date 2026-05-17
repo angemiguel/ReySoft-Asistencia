@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { Check, PauseCircle, Pencil, Plus, Save, X, XCircle } from 'lucide-react';
 import { api, extractError } from '../api/client';
 import { EmptyState } from '../components/EmptyState';
@@ -66,6 +66,7 @@ export function AdminDashboardPage() {
   const [logoInputKey, setLogoInputKey] = useState(0);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const mountedRef = useRef(true);
 
   const isEditing = Boolean(editingOrganizationId);
 
@@ -79,12 +80,14 @@ export function AdminDashboardPage() {
         api.get<NotificationItem[]>('/admin/notifications'),
         api.get<ActivationItem[]>('/admin/subscription-activations')
       ]);
-      setStats(statsResponse.data);
-      setOrganizations(organizationsResponse.data);
-      setNotifications(notificationsResponse.data);
-      setActivations(activationsResponse.data);
+      if (mountedRef.current) {
+        setStats(statsResponse.data);
+        setOrganizations(organizationsResponse.data);
+        setNotifications(notificationsResponse.data);
+        setActivations(activationsResponse.data);
+      }
     } catch (err) {
-      setError(extractError(err));
+      if (mountedRef.current) setError(extractError(err));
     }
   }
 
@@ -193,7 +196,9 @@ export function AdminDashboardPage() {
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     loadData();
+    return () => { mountedRef.current = false; };
   }, [statusFilter]);
 
   return (
@@ -238,7 +243,7 @@ export function AdminDashboardPage() {
           <div className="grid gap-3 md:grid-cols-3">
             <input className="form-input" placeholder="Nombre del centro" value={form.organization_name} onChange={(event) => setForm({ ...form, organization_name: event.target.value })} required />
             <input className="form-input" placeholder="Correo del centro" type="email" value={form.organization_email} onChange={(event) => setForm({ ...form, organization_email: event.target.value })} required />
-            <input className="form-input" placeholder="Teléfono del centro" value={form.organization_phone} onChange={(event) => setForm({ ...form, organization_phone: event.target.value })} required />
+            <input className="form-input" placeholder="Teléfono del centro" value={form.organization_phone} onChange={(event) => setForm({ ...form, organization_phone: event.target.value })} />
             {!isEditing && (
               <>
                 <input className="form-input" placeholder="Nombre del administrador" value={form.admin_full_name} onChange={(event) => setForm({ ...form, admin_full_name: event.target.value })} required />

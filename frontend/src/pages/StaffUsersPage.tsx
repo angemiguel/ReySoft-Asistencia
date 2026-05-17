@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { api, extractError } from '../api/client';
 import { EmptyState } from '../components/EmptyState';
@@ -15,6 +15,7 @@ export function StaffUsersPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const mountedRef = useRef(true);
 
   async function loadUsers(searchValue = search) {
     setLoading(true);
@@ -24,11 +25,11 @@ export function StaffUsersPage() {
       const response = await api.get<User[]>('/users', {
         params: { role: 'staff', ...(normalizedSearch ? { search: normalizedSearch } : {}) }
       });
-      setUsers(response.data);
+      if (mountedRef.current) setUsers(response.data);
     } catch (err) {
-      setError(extractError(err));
+      if (mountedRef.current) setError(extractError(err));
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }
 
@@ -85,10 +86,11 @@ export function StaffUsersPage() {
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     const timeout = window.setTimeout(() => {
       loadUsers(search);
     }, 250);
-    return () => window.clearTimeout(timeout);
+    return () => { mountedRef.current = false; window.clearTimeout(timeout); };
   }, [search]);
 
   return (

@@ -35,5 +35,6 @@ export function mediaUrl(value?: string | null): string {
   if (!value) return '';
   if (/^(https?:|data:|blob:)/.test(value)) return value;
   const apiBaseUrl = api.defaults.baseURL ?? '';
+  if (!apiBaseUrl) return value;
   return `${apiBaseUrl.replace(/\/$/, '')}/${value.replace(/^\//, '')}`;
 }

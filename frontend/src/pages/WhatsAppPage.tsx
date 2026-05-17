@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { Save } from 'lucide-react';
 import { api, extractError } from '../api/client';
 import { EmptyState } from '../components/EmptyState';
@@ -16,17 +16,20 @@ export function WhatsAppPage() {
   const [text, setText] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const mountedRef = useRef(true);
 
   async function loadTemplates() {
     try {
       const response = await api.get<WhatsAppTemplate[]>('/whatsapp/templates');
-      setTemplates(response.data);
-      if (!selected && response.data[0]) {
-        setSelected(response.data[0]);
-        setText(response.data[0].template_text);
+      if (mountedRef.current) {
+        setTemplates(response.data);
+        if (!selected && response.data[0]) {
+          setSelected(response.data[0]);
+          setText(response.data[0].template_text);
+        }
       }
     } catch (err) {
-      setError(extractError(err));
+      if (mountedRef.current) setError(extractError(err));
     }
   }
 
@@ -43,16 +46,18 @@ export function WhatsAppPage() {
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     loadTemplates();
+    return () => { mountedRef.current = false; };
   }, []);
 
   const preview = text
-    .replace('{student_name}', 'Luis Pérez')
-    .replace('{guardian_name}', 'María Rodríguez')
-    .replace('{course_name}', 'Primero A')
-    .replace('{school_name}', user?.organization?.name ?? 'Colegio')
-    .replace('{date}', new Date().toISOString().slice(0, 10))
-    .replace('{time}', '07:45');
+    .replace(/\{student_name\}/g, 'Luis Pérez')
+    .replace(/\{guardian_name\}/g, 'María Rodríguez')
+    .replace(/\{course_name\}/g, 'Primero A')
+    .replace(/\{school_name\}/g, user?.organization?.name ?? 'Colegio')
+    .replace(/\{date\}/g, new Date().toISOString().slice(0, 10))
+    .replace(/\{time\}/g, '07:45');
 
   return (
     <div className="grid gap-5 lg:grid-cols-[320px_1fr]">

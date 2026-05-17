@@ -203,8 +203,11 @@ def update_organization(
     if "organization_name" in update_data:
         update_data["name"] = update_data.pop("organization_name")
 
-    if "organization_phone" in update_data:
+    if "organization_phone" in update_data and update_data["organization_phone"]:
         update_data["phone"] = clean_phone_number(update_data.pop("organization_phone"))
+    elif "organization_phone" in update_data:
+        update_data["phone"] = None
+        del update_data["organization_phone"]
 
     if "footer_text" in update_data:
         update_data["footer_text"] = _clean_optional_text(update_data["footer_text"])

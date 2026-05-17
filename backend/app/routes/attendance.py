@@ -78,9 +78,9 @@ def create_attendance(
     _ensure_student_in_organization(db, payload.student_id, current_user.organization_id)
     _ensure_attendance_day_rule(db, payload.student_id, payload.attendance_date, payload.status)
     attendance = AttendanceRecord(
+        **payload.model_dump(exclude={"organization_id", "recorded_by_user_id"}),
         organization_id=current_user.organization_id,
         recorded_by_user_id=current_user.id,
-        **payload.model_dump(),
     )
     db.add(attendance)
     db.commit()

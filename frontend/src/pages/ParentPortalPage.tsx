@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { CalendarDays, Filter, LogOut, UsersRound } from 'lucide-react';
 import { extractError, mediaUrl, parentApi } from '../api/client';
@@ -25,6 +25,7 @@ export function ParentPortalPage() {
   const [endDate, setEndDate] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const mountedRef = useRef(true);
 
   const params = useMemo(() => ({
     ...(studentId ? { student_id: studentId } : {}),
@@ -41,14 +42,21 @@ export function ParentPortalPage() {
         parentApi.get<ParentStudent[]>('/parents/students'),
         parentApi.get<ParentAttendanceRecord[]>('/parents/attendance', { params })
       ]);
-      setGuardian(meResponse.data);
-      setStudents(studentsResponse.data);
-      setAttendance(attendanceResponse.data);
+      if (mountedRef.current) {
+        setGuardian(meResponse.data);
+        setStudents(studentsResponse.data);
+        setAttendance(attendanceResponse.data);
+      }
     } catch (err) {
-      localStorage.removeItem('reysoft_asistencia_parent_token');
-      setError(extractError(err));
+      if (mountedRef.current) {
+        const message = extractError(err);
+        if (message.includes('401') || message.includes('Token') || message.includes('no encontrado')) {
+          localStorage.removeItem('reysoft_asistencia_parent_token');
+        }
+        setError(message);
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }
 
@@ -63,7 +71,9 @@ export function ParentPortalPage() {
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     if (hasToken) loadPortal();
+    return () => { mountedRef.current = false; };
   }, []);
 
   if (!hasToken) return <Navigate to="/parents/login" replace />;

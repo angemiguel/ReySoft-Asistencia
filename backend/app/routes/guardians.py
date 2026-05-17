@@ -96,8 +96,11 @@ def update_guardian(
     guardian = _get_guardian_or_404(db, guardian_id, current_user.organization_id)
     old_data = {"full_name": guardian.full_name, "phone": guardian.phone, "relationship": guardian.relationship}
     update_data = payload.model_dump(exclude_unset=True)
-    if "phone" in update_data and update_data["phone"]:
-        update_data["phone"] = clean_phone_number(update_data["phone"])
+    if "phone" in update_data:
+        if update_data["phone"]:
+            update_data["phone"] = clean_phone_number(update_data["phone"])
+        else:
+            update_data["phone"] = ""
     for field, value in update_data.items():
         setattr(guardian, field, value)
     create_audit_log(

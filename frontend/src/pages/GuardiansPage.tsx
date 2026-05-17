@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { api, extractError } from '../api/client';
 import { EmptyState } from '../components/EmptyState';
@@ -15,14 +15,15 @@ export function GuardiansPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const mountedRef = useRef(true);
 
   async function loadGuardians(searchValue = search) {
     try {
       const normalizedSearch = searchValue.trim();
       const response = await api.get<Guardian[]>('/guardians', { params: normalizedSearch ? { search: normalizedSearch } : undefined });
-      setGuardians(response.data);
+      if (mountedRef.current) setGuardians(response.data);
     } catch (err) {
-      setError(extractError(err));
+      if (mountedRef.current) setError(extractError(err));
     }
   }
 
@@ -41,15 +42,20 @@ export function GuardiansPage() {
 
   async function removeGuardian(id: string) {
     if (!confirm('¿Desactivar este tutor?')) return;
-    await api.delete(`/guardians/${id}`);
-    await loadGuardians();
+    try {
+      await api.delete(`/guardians/${id}`);
+      await loadGuardians();
+    } catch (err) {
+      setError(extractError(err));
+    }
   }
 
   useEffect(() => {
+    mountedRef.current = true;
     const timeout = window.setTimeout(() => {
       loadGuardians(search);
     }, 250);
-    return () => window.clearTimeout(timeout);
+    return () => { mountedRef.current = false; window.clearTimeout(timeout); };
   }, [search]);
 
   return (

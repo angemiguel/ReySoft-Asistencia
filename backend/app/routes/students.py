@@ -68,6 +68,8 @@ def _ensure_course_in_organization(db: Session, course_id: UUID, organization_id
 
 
 def _ensure_guardians_in_organization(db: Session, guardian_ids: list[UUID], organization_id: UUID) -> list[Guardian]:
+    if not guardian_ids:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Debes asignar al menos un tutor.")
     unique_ids = list(dict.fromkeys(guardian_ids))
     if len(unique_ids) != len(guardian_ids):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No se puede asignar el mismo tutor dos veces.")
@@ -320,7 +322,7 @@ def create_student(
     )
     db.add(student)
     db.flush()
-    primary_guardian_id = payload.primary_guardian_id or payload.guardian_ids[0]
+    primary_guardian_id = payload.primary_guardian_id or (payload.guardian_ids[0] if payload.guardian_ids else None)
     db.add_all(
         [
             StudentGuardian(

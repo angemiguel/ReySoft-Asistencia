@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api/client';
 import { User } from '../types';
 
@@ -29,49 +29,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('reysoft_asistencia_token'));
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(Boolean(token));
+  const mountedRef = useRef(true);
 
-  async function refreshUser() {
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  const refreshUser = useCallback(async () => {
     if (!localStorage.getItem('reysoft_asistencia_token')) {
       setLoading(false);
       return;
     }
     try {
       const response = await api.get<User>('/auth/me');
-      setUser(response.data);
-      applyOrganizationTheme(response.data);
+      if (mountedRef.current) {
+        setUser(response.data);
+        applyOrganizationTheme(response.data);
+      }
     } catch {
       localStorage.removeItem('reysoft_asistencia_token');
-      setToken(null);
-      setUser(null);
-      applyOrganizationTheme(null);
+      if (mountedRef.current) {
+        setToken(null);
+        setUser(null);
+        applyOrganizationTheme(null);
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }
+  }, []);
 
-  async function login(email: string, password: string) {
+  const login = useCallback(async (email: string, password: string) => {
     const response = await api.post<LoginResponse>('/auth/login', { email, password });
     localStorage.setItem('reysoft_asistencia_token', response.data.access_token);
     setToken(response.data.access_token);
     setUser(response.data.user);
     applyOrganizationTheme(response.data.user);
     return response.data.user;
-  }
+  }, []);
 
-  function logout() {
+  const logout = useCallback(() => {
     localStorage.removeItem('reysoft_asistencia_token');
     setToken(null);
     setUser(null);
     applyOrganizationTheme(null);
-  }
+  }, []);
 
   useEffect(() => {
     refreshUser();
-  }, []);
+  }, [refreshUser]);
 
   const value = useMemo(
     () => ({ token, user, loading, login, logout, refreshUser }),
-    [token, user, loading]
+    [token, user, loading, login, logout, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

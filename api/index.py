@@ -1,0 +1,13 @@
+from pathlib import Path
+import sys
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent / "backend"
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
+from app.main import app as backend_app
+
+from fastapi import FastAPI
+
+app = FastAPI(title="ReySoft-Asistencia API")
+app.mount("/api", backend_app)

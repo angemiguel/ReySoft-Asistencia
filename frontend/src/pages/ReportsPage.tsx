@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, BarChart3, Filter, GraduationCap } from 'lucide-react';
 import { api, extractError } from '../api/client';
 import { EmptyState } from '../components/EmptyState';
@@ -65,7 +65,9 @@ export function ReportsPage() {
     ...(courseId ? { course_id: courseId } : {})
   }), [startDate, endDate, courseId]);
 
-  async function loadReports() {
+  const mountedRef = useRef(true);
+
+  const loadReports = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -74,19 +76,23 @@ export function ReportsPage() {
         api.get<AttendanceStudentReport[]>('/reports/attendance/students', { params }),
         api.get<AttendanceCourseReport[]>('/reports/attendance/courses', { params })
       ]);
-      setCourses(coursesResponse.data);
-      setStudentRows(studentsResponse.data);
-      setCourseRows(coursesReportResponse.data);
+      if (mountedRef.current) {
+        setCourses(coursesResponse.data);
+        setStudentRows(studentsResponse.data);
+        setCourseRows(coursesReportResponse.data);
+      }
     } catch (err) {
-      setError(extractError(err));
+      if (mountedRef.current) setError(extractError(err));
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }
+  }, [params]);
 
   useEffect(() => {
+    mountedRef.current = true;
     loadReports();
-  }, []);
+    return () => { mountedRef.current = false; };
+  }, [loadReports]);
 
   const totals = studentRows.reduce(
     (acc, row) => ({
