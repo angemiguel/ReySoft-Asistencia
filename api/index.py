@@ -7,4 +7,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 from app.main import app as backend_app
 
-from fastapi import FastAPIp
+from fastapi import FastAPI
+
+app = FastAPI(title="ReySoft-Asistencia API")
+app.mount("/api", backend_app)
