@@ -2,9 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "cd frontend && npm ci && npm run build",
   "outputDirectory": "frontend/dist",
-  "functions": {
-  
-  },
+
   "rewrites": [
     {
       "source": "/api/(.*)",
